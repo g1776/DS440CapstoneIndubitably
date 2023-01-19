@@ -20,4 +20,4 @@ If we want any shared functionality or anything that makes sense to go in a *.py
 
 ### Data
 
-Data will be stored here, but not commited (just so its easy for us to run each other's code without modifying paths.
+Data will be stored here, but not commited (just so its easy for us to run each other's code without modifying paths).
