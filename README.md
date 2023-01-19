@@ -1,7 +1,12 @@
 # DS 440 Capstone
+
 __Team__: Indubitably
+
 __Members__: Gregory Glatzer, Charlie Lu
-__Project__: AirBnB
+
+__Project__: Airbnb
+
+<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/Airbnb_Logo_B%C3%A9lo.svg/768px-Airbnb_Logo_B%C3%A9lo.svg.png?20140813142239" width="30%" alt="Airbnb"/>
 
 ## Repo Content
 
