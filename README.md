@@ -24,7 +24,7 @@ Data will be stored here, but not commited (just so its easy for us to run each 
 
 The folders in data are as follows:
 
--   `raw` - raw data from Airbnb.
+-   `raw` - raw data from Airbnb. Also contains <GEO>_raw_processed.csv, which is processed raw data, which was only used for EDA.
 -   `filtered` - subsets of the raw review data that we will label.
 -   `labels` - the labels for the filtered data. (can be joined with the filtered data using the `id` column, corresponding to the `listing_id` in the raw data)
 -   `sentiment` - the sentiment scores for the raw data. Used to generate the filtered subsets.
