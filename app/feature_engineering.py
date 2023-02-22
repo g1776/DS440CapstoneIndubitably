@@ -7,101 +7,135 @@ import pandas as pd
 import pickle
 from typing import List
 import re
+import nltk
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+from nltk.tokenize import RegexpTokenizer
+from gensim.models.word2vec import Word2Vec
 
 
-# def get_consecutive_ngrams(review, n) -> list:
-#     """Helper function to get ngrams from a review.
+def remove_stopwords_and_lemmatize(tokens) -> list:
+    # download stopwords
+    nltk.download("stopwords")
+    stop_words = set(stopwords.words("english"))
 
-#     Args:
-#         review (str): The review to get ngrams from.
-#         n (int): The number of ngrams to get.
+    # remove negative words from stopwords
+    negative_words = [
+        "no",
+        "not",
+        "nor",
+        "neither",
+        "never",
+        "none",
+        "doesnt",
+        "couldnt",
+        "shouldnt",
+        "wouldnt",
+        "cant",
+        "cannot",
+        "wont",
+        "isnt",
+        "arent",
+        "wasnt",
+        "werent",
+        "hasnt",
+        "havent",
+        "hadnt",
+        "dont",
+        "didnt",
+        "neednt",
+        "very",
+    ]
+    for w in negative_words:
+        try:
+            stop_words.remove(w)
+        except KeyError:
+            pass
 
-#     Returns:
-#         list: the list of ngrams, joined by underscores.
-#     """
-#     if isinstance(review, str):
-#         review = review.split("")
+    additional_stopwords = ["airbnb", "austin", "texas", "home", "house"]
+    for w in additional_stopwords:
+        stop_words.add(w)
 
-#     return ["_".join(review[i : i + n]) for i in range(len(review) - n - 1)]
+    # download lemmatizer
+    nltk.download("wordnet")
+    lemmatizer = WordNetLemmatizer()
 
+    processed_tokens = []
+    for w in tokens:
+        if w in stop_words:
+            continue
+        lemmatized = lemmatizer.lemmatize(w)
+        processed_tokens.append(lemmatized)
 
-# def amenities_features(
-#     to_predict: pd.DataFrame, corr_thresh=None, prefix="amenities_"
-# ) -> pd.DataFrame:
-#     amenities_features_df = pd.DataFrame()
-#     # 1. Find the amenities in the listings
-#     for index, row in to_predict.iterrows():
-#         # 1. Find the amenities in the listings
-#         amenities = row.amenities
-
-#         # Add one row to the features dataframe using pd.concat
-#         amenities_features_df = pd.concat(
-#             [amenities_features_df, pd.DataFrame(columns=amenities_features_df.columns)]
-#         )
-
-#         # 2. For each amenity, see if it is present in the review
-#         for amenity in amenities:
-#             if amenity in row.comments:
-#                 # 3. If it is present, add 1 for that feature
-#                 if amenity in amenities_features_df.columns:
-#                     amenities_features_df.loc[index, amenity] = 1
-#                 #   If the amenity does not already exist from another review, add it to the features dataframe
-#                 else:
-#                     amenities_features_df.loc[index, amenity] = 0
-
-#     # 4. fill missing values with 0
-#     amenities_features_df = amenities_features_df.fillna(0)
-
-#     # 6. Only keep amenities features that have a correlation with the label above a certain threshold
-#     amenities_features_df = corr_filter(amenities_features_df, corr_thresh=corr_thresh)
-
-#     # prefix features
-#     amenities_features_df = amenities_features_df.add_prefix(prefix)
-
-#     # 5. Add the features to the greater features dataframe
-#     features = pd.concat([features, amenities_features_df], axis=1)
-
-#     return features
-
-
-# def series_to_ngrams(series: pd.Series, N):
-#     n_grams = series.apply(lambda x: get_consecutive_ngrams(x, N))
-#     return n_grams.explode()
+    return processed_tokens
 
 
-# def ngrams_features(features, df, n, prefix="ngrams_", corr_thresh=0.05):
-#     """Add n-gram features to the features dataframe."""
+def preprocess_text(text: str) -> list:
+    tokenizer = RegexpTokenizer(r"\w+")
 
-#     # one-hot encode ngrams
-#     df["ngrams"] = df.comments.apply(lambda x: set(get_consecutive_ngrams(x, 3)))
+    # remove some specific phrases, using regular expressions
+    specific_phrases = [
+        r"\(.* hidden by airbnb\)",
+    ]
 
-#     subset = df[df.label.isin(["mbad", "mgood"])]
+    # lowercase
+    text: str = text.lower()
 
-#     # get set of ngrams
-#     ng_set = set(series_to_ngrams(subset.comments, n).to_list())
+    for phrase in specific_phrases:
+        text = re.sub(phrase, "", text)
 
-#     # one-hot encode ngrams
-#     ngram_features = {}
-#     for ngram in ng_set:
-#         ngram_features[prefix + ngram] = df.ngrams.apply(
-#             lambda ngrams: 1 if ngram in ngrams else 0
-#         )
-#     ngram_df = pd.DataFrame(ngram_features)
+    # tokenize
+    tokens = tokenizer.tokenize(text)
 
-#     # filter features on correlation with label
-#     ngrams_df = corr_filter(ngram_df, corr_thresh=corr_thresh)
+    # remove stopwords and lemmatize
+    return remove_stopwords_and_lemmatize(tokens)
 
-#     # add ngram features to features dataframe
-#     features = pd.concat([features, ngrams_df], axis=1)
 
-#     return features
+def clean_amenities(amenities):
+    """Clean the amenities column."""
+
+    cleaned = []
+
+    # basic cleaning
+    for amenity in amenities:
+        # remove quotes
+        amenity = amenity.replace('"', "")
+        # remove anything in parentheses or brackets
+        amenity = re.sub(r"\(.*\)", "", amenity)
+        amenity = re.sub(r"\[.*\]", "", amenity)
+        # strip whitespace
+        amenity = amenity.strip()
+        # lowercase
+        amenity = amenity.lower()
+
+        cleaned.append(amenity)
+
+    # split entries with a slash, "and", or "or"
+    for to_split_on in ["/", " and ", " or "]:
+        cleaned = [amenity.split(to_split_on) for amenity in cleaned]
+        cleaned = [item.strip() for sublist in cleaned for item in sublist]
+
+    # remove empty strings
+    cleaned = [amenity for amenity in cleaned if amenity != ""]
+
+    return cleaned
 
 
 class DemoClassifier:
-    def __init__(self, pickle_path):
+    def __init__(self, pickle_path, w2v_comments_path, w2v_descriptions_path):
+        print("Loading models...")
+        # load the classifier and the word2vec models
         pickle_loaded = pickle.load(open(pickle_path, "rb"))
         self.__clf = pickle_loaded["best_clf"]
+        self.__w2v_comments = Word2Vec.load(w2v_comments_path)
+        self.__w2v_descriptions = Word2Vec.load(w2v_descriptions_path)
+
+        # load the feature set
         self.__features: List = pickle_loaded["best_feature_set"]
+
+        #####################################
+        ## Determine Features to Calculate ##
+        #####################################
 
         # figure out which ngrams are in the feature set by looking at the names of the features
         self.__grams_to_find = []
@@ -109,20 +143,43 @@ class DemoClassifier:
         ngrams = set([feature for feature in self.__features if ngram_re.match(feature)])
         for ngram_feature in ngrams:
             gram = " ".join(ngram_feature.split("_")[1:])
-            self.__grams_to_find.add(
+            self.__grams_to_find.append(
                 {
                     "feature": ngram_feature,
                     "gram": gram,
                 }
             )
-    
-    def preprocess_pipeline(self, description, amenities, review):
-        pass
+
+        # figure out with amenities are in the feature set by looking at the names of the features
+        self.__amenities_to_find = []
+        amenity_re = re.compile(r"amenity.*_.*")
+        amenities = set(feature for feature in self.__features if amenity_re.match(feature))
+        for amenity_feature in amenities:
+            amenity = " ".join(amenity_feature.split("_")[1:])
+            self.__amenities_to_find.append(
+                {
+                    "feature": amenity_feature,
+                    "amenity": amenity,
+                }
+            )
+
+        print("Init complete.")
 
     def predict(self, description, amenities, review):
+        # preprocess the description
+        description = preprocess_text(description)
+        # preprocess the review
+        review = preprocess_text(review)
+        # clean amenities
+        amenities = clean_amenities(amenities)
+
+        # use w2v 
+
         pass
 
 
 DemoClassifier(
-    r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\notebooks\modelling\best_clf_texas_florida.pickle"
+    r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\best_clf_texas_florida.pickle",
+    r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\w2vmodel_comments_texas_florida.model",
+    r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\w2vmodel_description_texas_florida.model",
 )
