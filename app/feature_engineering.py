@@ -189,22 +189,6 @@ class DemoClassifier:
                 {"col": col, "feature": embedding_feature, "n": n}
             )
 
-        # figure out which t-SNE features there are in the feature set
-        # self.__tsnes_to_generate = []
-        # tsnes = [feature for feature in self.__features if feature.startswith("tsne")]
-        # for tsne_feature in tsnes:
-        #     n_dims = int(tsne_feature[4])
-        #     col = tsne_feature.split("_")[1]
-        #     dim_number = int(tsne_feature.split("_")[-1])
-        #     self.__tsnes_to_generate.append(
-        #         {
-        #             "feature": tsne_feature,
-        #             "n_dims": n_dims,
-        #             "dim_number": dim_number,
-        #             "col": col,
-        #         }
-        #     )
-
         print("Init complete.")
 
     def __generate_embedding(self, text, w2vmodel):
@@ -249,69 +233,6 @@ class DemoClassifier:
             embedding_n = embedding[n]
 
             features[embedding_feature["feature"]] = embedding_n
-
-        # print("Generating t-SNE features...")
-        # # generate tsne features
-        # training_embeddings_description = self.__generate_training_embeddings(
-        #     "description", self.__w2v_descriptions
-        # )
-        # training_embeddings_comments = self.__generate_training_embeddings(
-        #     "comments", self.__w2v_comments
-        # )
-        # tsnes = []
-        # for tsne_feature in self.__tsnes_to_generate:
-        #     print(f"... Calculating Feature {tsne_feature['feature']}")
-        #     if tsne_feature["col"] == "description":
-        #         text = description
-        #         w2v = self.__w2v_descriptions
-        #         training_embeddings = training_embeddings_description
-        #     elif tsne_feature["col"] == "comments":
-        #         text = review
-        #         w2v = self.__w2v_comments
-        #         training_embeddings = training_embeddings_comments
-
-        #     # check if a tsne was already created for this column with this number of dimensions
-        #     tsne_found = False
-        #     for tsne in tsnes:
-        #         if tsne["col"] == tsne_feature["col"] and tsne["n_dims"] == tsne_feature["n_dims"]:
-        #             # if so, use the already created tsne
-        #             prediction_embedding = tsne["tsne_embedding"]
-        #             tsne_found = True
-        #             break
-
-        #     if not tsne_found:
-        #         print("... generating embedding for observation")
-        #         embeddings = self.__generate_embedding(text, w2v)
-
-        #         # apply TSNE to the training data + the observation to predict with random_state=0
-        #         tsne = TSNE(n_components=tsne_feature["n_dims"], random_state=0)
-
-        #         # add the embedding to the training data embeddings
-        #         embeddings_df = pd.DataFrame(
-        #             [embeddings],
-        #             columns=[f"embedding_{i}" for i in range(embeddings.shape[0])],
-        #         )
-        #         embeddings_df["to_predict"] = True
-        #         embeddings_df = pd.concat([training_embeddings, embeddings_df], axis=0)
-
-        #         # fit the tsne
-        #         print("... fitting t-SNE (training data + observation)")
-        #         prediction_embedding = tsne.fit_transform(embeddings_df)
-        #         # grab the last row, which is the embedding for the observation
-        #         prediction_embedding = prediction_embedding[-1, :]
-        #         tsnes.append(
-        #             {
-        #                 "col": tsne_feature["col"],
-        #                 "n_dims": tsne_feature["n_dims"],
-        #                 "tsne_embedding": prediction_embedding,
-        #             }
-        #         )
-
-        #     # grab the correct dimension from the tsne embedding
-        #     tsne_embedding_n = prediction_embedding[tsne_feature["dim_number"]]
-
-        #     # add the features to the feature set
-        #     features[tsne_feature["feature"]] = tsne_embedding_n
 
         print("Generating ngram features...")
         # generate ngram features
@@ -371,7 +292,8 @@ prediction, probabilities = d_clf.predict(
         "hot tub",
     ],
     review=(
-        "Would not recommend to anyone. This listing was very misleading. The pictures are not as the property looks. The air conditioner is broken."
+        "Would not recommend to anyone. This listing was very misleading. The pictures are not as"
+        " the property looks. The air conditioner is broken."
     ),
 )
 
