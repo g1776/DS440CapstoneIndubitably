@@ -348,24 +348,6 @@ def parse_amenities(amenities):
     return amenities.split(",")
 
 
-training = pd.read_csv("../data/processed/features_texas_florida.csv")
-mgood = training[training.label == "good"]
-rid = mgood.iloc[1].review_id
-training_reviews = pd.read_csv("../data/raw/texas_reviews.csv")
-training_listings = pd.read_csv(
-    "../data/raw/texas_listings.csv", encoding="unicode_escape", low_memory=False
-)
-target_review = training_reviews[training_reviews.id == rid].iloc[0]
-target_listing = training_listings[training_listings.id == target_review.listing_id].iloc[0]
-
-print("True label: mgood")
-print("Description:")
-print(target_listing.description)
-print("Amenities:")
-print(parse_amenities(target_listing.amenities))
-print("Review:")
-print(target_review.comments)
-
 d_clf = DemoClassifier(
     r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\best_clf_texas_florida.pickle",
     r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\w2vmodel_comments_texas_florida_no_tsne.model",
@@ -373,7 +355,24 @@ d_clf = DemoClassifier(
 )
 
 prediction, probabilities = d_clf.predict(
-    target_listing.description, parse_amenities(target_listing.amenities), target_review.comments
+    description=(
+        "Enjoy your stay in a calming home. In the hot Texas sun, cool off with some air"
+        " conditioning while watching TV, and drink some coffee with the coffee maker. If you want"
+        " to relax, take a hot tub. This home is dog friendly, so bring your dog along!"
+    ),
+    amenities=[
+        "Internet",
+        "Kitchen",
+        "Dogs",
+        "Air conditioner",
+        "TV",
+        "Cable TV",
+        "coffee maker",
+        "hot tub",
+    ],
+    review=(
+        "Would not recommend to anyone. This listing was very misleading. The pictures are not as the property looks. The air conditioner is broken."
+    ),
 )
 
 print(f"Prediction: {prediction}")
