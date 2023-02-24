@@ -52,8 +52,8 @@ if classify:
     log_title.write("Log:")
     clf = DemoClassifier(
         classifier_fp,
-        r"..\models\w2vmodel_comments_texas_florida.model",
-        r"..\models\w2vmodel_description_texas_florida.model",
+        r"..\models\w2vmodel_comments_texas_florida_3.model",
+        r"..\models\w2vmodel_description_texas_florida_3.model",
         logging_callback=lambda msg: log.write(msg),
     )
 

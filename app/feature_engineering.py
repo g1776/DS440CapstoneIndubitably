@@ -206,6 +206,7 @@ class DemoClassifier:
         amenities = clean_amenities(amenities)
 
         self.print("Generating embeddings features...")
+        print(self.__features)
         for embedding_feature in self.__embeddings_to_generate:
             col = embedding_feature["col"]
             n = embedding_feature["n"]
@@ -252,39 +253,40 @@ class DemoClassifier:
 
 
 if __name__ == "__main__":
+    pass
 
-    def parse_amenities(amenities):
-        amenities = amenities.replace("{", "").replace("}", "").replace("]", "").replace('"', "")
-        return amenities.split(",")
+    # def parse_amenities(amenities):
+    #     amenities = amenities.replace("{", "").replace("}", "").replace("]", "").replace('"', "")
+    #     return amenities.split(",")
 
-    d_clf = DemoClassifier(
-        r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\best_clf_texas_florida.pickle",
-        r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\w2vmodel_comments_texas_florida_no_tsne.model",
-        r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\w2vmodel_description_texas_florida_no_tsne.model",
-    )
+    # d_clf = DemoClassifier(
+    #     r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\best_clf_texas_florida_3.pickle",
+    #     r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\w2vmodel_comments_texas_florida_3.model",
+    #     r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\w2vmodel_description_texas_florida_3.model",
+    # )
 
-    prediction, probabilities = d_clf.predict(
-        description=(
-            "Enjoy your stay in a calming home. In the hot Texas sun, cool off with some air"
-            " conditioning while watching TV, and drink some coffee with the coffee maker. If you"
-            " want to relax, take a hot tub. This home is dog friendly, so bring your dog along!"
-        ),
-        amenities=[
-            "Internet",
-            "Kitchen",
-            "Dogs",
-            "Air conditioner",
-            "TV",
-            "Cable TV",
-            "coffee maker",
-            "hot tub",
-        ],
-        review=(
-            "Would not recommend to anyone. This listing was very misleading. The pictures are not"
-            " as the property looks. The air conditioner is broken."
-        ),
-    )
+    # prediction, probabilities = d_clf.predict(
+    #     description=(
+    #         "Enjoy your stay in a calming home. In the hot Texas sun, cool off with some air"
+    #         " conditioning while watching TV, and drink some coffee with the coffee maker. If you"
+    #         " want to relax, take a hot tub. This home is dog friendly, so bring your dog along!"
+    #     ),
+    #     amenities=[
+    #         "Internet",
+    #         "Kitchen",
+    #         "Dogs",
+    #         "Air conditioner",
+    #         "TV",
+    #         "Cable TV",
+    #         "coffee maker",
+    #         "hot tub",
+    #     ],
+    #     review=(
+    #         "Would not recommend to anyone. This listing was very misleading. The pictures are not"
+    #         " as the property looks. The air conditioner is broken."
+    #     ),
+    # )
 
-    self.print(f"Prediction: {prediction}")
-    self.print(f"Probabilities:")
-    pself.print(probabilities)
+    # print(f"Prediction: {prediction}")
+    # print(f"Probabilities:")
+    # pprint(probabilities)
