@@ -125,28 +125,22 @@ def clean_amenities(amenities):
 
 
 class DemoClassifier:
-    def __init__(self, pickle_path, w2v_comments_path, w2v_descriptions_path):
-        print("Loading models...")
+    def __init__(
+        self, pickle_path, w2v_comments_path, w2v_descriptions_path, logging_callback=None
+    ):
+        self.__logging_callback = logging_callback
+
+        self.print("Loading models...")
         # load the classifier and the word2vec models
         pickle_loaded = pickle.load(open(pickle_path, "rb"))
         self.__clf = pickle_loaded["best_clf"]
         self.__w2v_comments = Word2Vec.load(w2v_comments_path)
         self.__w2v_descriptions = Word2Vec.load(w2v_descriptions_path)
 
-        print("Loading training data...")
-        # load the training data (used for t-SNE)
-        self.__training_data = []
-        training_data_geos = ["texas", "florida"]
-        for geo in training_data_geos:
-            df = pd.read_csv(f"../data/processed/{geo}_processed.csv")
-            df["source"] = geo
-            self.__training_data.append(df)
-        self.__training_data = pd.concat(self.__training_data)
-
         # load the feature set
         self.__features: List = pickle_loaded["best_feature_set"]
 
-        print("Determining features to calculate...")
+        self.print("Determining features to calculate...")
         #####################################
         ## Determine Features to Calculate ##
         #####################################
@@ -189,30 +183,21 @@ class DemoClassifier:
                 {"col": col, "feature": embedding_feature, "n": n}
             )
 
-        print("Init complete.")
+        self.print("Init complete.")
 
     def __generate_embedding(self, text, w2vmodel):
         # average the word embeddings in the text
         return np.mean([w2vmodel.wv[word] for word in text if word in w2vmodel.wv], axis=0)
 
-    def __generate_training_embeddings(self, col, w2vmodel) -> pd.DataFrame:
-        training_embeddings = pd.DataFrame()
-        embeddings = np.array(
-            [
-                self.__generate_embedding(text, w2vmodel)
-                for text in self.__training_data[col].to_list()
-            ]
-        )
-
-        for i in range(embeddings.shape[1]):
-            training_embeddings[f"embedding_{i}"] = embeddings[:, i]
-
-        return training_embeddings
+    def print(self, msg):
+        if self.__logging_callback:
+            self.__logging_callback(msg)
+        print(msg)
 
     def predict(self, description, amenities, review):
         features = {}
 
-        print("Preprocessing...")
+        self.print("Preprocessing...")
         # preprocess the description
         description = preprocess_text(description)
         # preprocess the review
@@ -220,7 +205,7 @@ class DemoClassifier:
         # clean amenities
         amenities = clean_amenities(amenities)
 
-        print("Generating embeddings features...")
+        self.print("Generating embeddings features...")
         for embedding_feature in self.__embeddings_to_generate:
             col = embedding_feature["col"]
             n = embedding_feature["n"]
@@ -234,16 +219,16 @@ class DemoClassifier:
 
             features[embedding_feature["feature"]] = embedding_n
 
-        print("Generating ngram features...")
+        self.print("Generating ngram features...")
         # generate ngram features
         for ngram_feature in self.__grams_to_find:
-            print(f"... Calculating Feature {ngram_feature['feature']}")
+            self.print(f"... Calculating Feature {ngram_feature['feature']}")
             features[ngram_feature["feature"]] = ngram_feature["gram"] in description
 
-        print("Generating amenity features...")
+        self.print("Generating amenity features...")
         # generate amenity features
         for amenity_feature in self.__amenities_to_find:
-            print(f"... Calculating Feature {amenity_feature['feature']}")
+            self.print(f"... Calculating Feature {amenity_feature['feature']}")
             in_amenities = amenity_feature["amenity"] in amenities
             in_review = amenity_feature["amenity"] in review
             features[amenity_feature["feature"]] = in_amenities and in_review
@@ -254,49 +239,52 @@ class DemoClassifier:
         self.__features.remove("label")
         features = features[self.__features]
 
-        print("Predicting...")
+        self.print("Predicting...")
         # predict
         prediction = self.__clf.predict(features)[0]
         probabilities = self.__clf.predict_proba(features)[0]
         # align probabilities with labels
         probabilities = dict(zip(self.__clf.classes_, probabilities))
 
+        self.print("Done!")
+
         return prediction, probabilities
 
 
-def parse_amenities(amenities):
-    amenities = amenities.replace("{", "").replace("}", "").replace("]", "").replace('"', "")
-    return amenities.split(",")
+if __name__ == "__main__":
 
+    def parse_amenities(amenities):
+        amenities = amenities.replace("{", "").replace("}", "").replace("]", "").replace('"', "")
+        return amenities.split(",")
 
-d_clf = DemoClassifier(
-    r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\best_clf_texas_florida.pickle",
-    r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\w2vmodel_comments_texas_florida_no_tsne.model",
-    r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\w2vmodel_description_texas_florida_no_tsne.model",
-)
+    d_clf = DemoClassifier(
+        r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\best_clf_texas_florida.pickle",
+        r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\w2vmodel_comments_texas_florida_no_tsne.model",
+        r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\w2vmodel_description_texas_florida_no_tsne.model",
+    )
 
-prediction, probabilities = d_clf.predict(
-    description=(
-        "Enjoy your stay in a calming home. In the hot Texas sun, cool off with some air"
-        " conditioning while watching TV, and drink some coffee with the coffee maker. If you want"
-        " to relax, take a hot tub. This home is dog friendly, so bring your dog along!"
-    ),
-    amenities=[
-        "Internet",
-        "Kitchen",
-        "Dogs",
-        "Air conditioner",
-        "TV",
-        "Cable TV",
-        "coffee maker",
-        "hot tub",
-    ],
-    review=(
-        "Would not recommend to anyone. This listing was very misleading. The pictures are not as"
-        " the property looks. The air conditioner is broken."
-    ),
-)
+    prediction, probabilities = d_clf.predict(
+        description=(
+            "Enjoy your stay in a calming home. In the hot Texas sun, cool off with some air"
+            " conditioning while watching TV, and drink some coffee with the coffee maker. If you"
+            " want to relax, take a hot tub. This home is dog friendly, so bring your dog along!"
+        ),
+        amenities=[
+            "Internet",
+            "Kitchen",
+            "Dogs",
+            "Air conditioner",
+            "TV",
+            "Cable TV",
+            "coffee maker",
+            "hot tub",
+        ],
+        review=(
+            "Would not recommend to anyone. This listing was very misleading. The pictures are not"
+            " as the property looks. The air conditioner is broken."
+        ),
+    )
 
-print(f"Prediction: {prediction}")
-print(f"Probabilities:")
-pprint(probabilities)
+    self.print(f"Prediction: {prediction}")
+    self.print(f"Probabilities:")
+    pself.print(probabilities)
