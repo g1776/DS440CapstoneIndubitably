@@ -249,7 +249,9 @@ class DemoClassifier:
         # align probabilities with labels
         probabilities = dict(zip(self.__clf.classes_, probabilities))
 
-        self.print("Done!")
+        self.print(f"Prediction: {prediction}")
+        # self.print(f"Probabilities: {probabilities}")
+        # self.print("Done!")
 
         return prediction, probabilities
 
