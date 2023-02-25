@@ -37,7 +37,11 @@ review = st.text_area("Enter a review of the listing")
 
 classifier_fp = st.text_input(
     "Enter the path to the classifier pickle file",
-    r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\best_clf_texas_florida.pickle",
+    r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\best_clf_texas_florida_pca.pickle",
+)
+feature_models_fp = st.text_input(
+    "Enter the path to the feature models pickle file",
+    r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\feature_models_texas_florida_pca.pickle",
 )
 
 classify = st.button("Classify")
@@ -52,8 +56,7 @@ if classify:
     log_title.write("Log:")
     clf = DemoClassifier(
         classifier_fp,
-        r"..\models\w2vmodel_comments_texas_florida_3.model",
-        r"..\models\w2vmodel_description_texas_florida_3.model",
+        feature_models_fp,
         logging_callback=lambda msg: log.write(msg),
     )
 

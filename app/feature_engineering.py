@@ -125,20 +125,21 @@ def clean_amenities(amenities):
 
 
 class DemoClassifier:
-    def __init__(
-        self, pickle_path, w2v_comments_path, w2v_descriptions_path, logging_callback=None
-    ):
+    def __init__(self, model_pickle, feature_models_pickle, logging_callback=None):
         self.__logging_callback = logging_callback
 
         self.print("Loading models...")
         # load the classifier and the word2vec models
-        pickle_loaded = pickle.load(open(pickle_path, "rb"))
-        self.__clf = pickle_loaded["best_clf"]
-        self.__w2v_comments = Word2Vec.load(w2v_comments_path)
-        self.__w2v_descriptions = Word2Vec.load(w2v_descriptions_path)
+        model_pickle = pickle.load(open(model_pickle, "rb"))
+        feature_models_pickle = pickle.load(open(feature_models_pickle, "rb"))
+        self.__clf = model_pickle["best_clf"]
+        self.__w2v_comments = feature_models_pickle["w2vmodel_comments"]
+        self.__w2v_descriptions = feature_models_pickle["w2vmodel_description"]
+        self.__pca_comments = feature_models_pickle["pca_comments"]
+        self.__pca_descriptions = feature_models_pickle["pca_description"]
 
         # load the feature set
-        self.__features: List = pickle_loaded["best_feature_set"]
+        self.__features: List = model_pickle["best_feature_set"]
 
         self.print("Determining features to calculate...")
         #####################################
@@ -173,9 +174,7 @@ class DemoClassifier:
 
         # figure out which embedding features there are in the feature set
         self.__embeddings_to_generate = []
-        embedding_features = [
-            feature for feature in self.__features if feature.startswith("embedding_")
-        ]
+        embedding_features = [feature for feature in self.__features if feature.startswith("pca_")]
         for embedding_feature in embedding_features:
             col = embedding_feature.split("_")[1]
             n = int(embedding_feature.split("_")[2])
@@ -213,10 +212,13 @@ class DemoClassifier:
 
             if col == "comments":
                 embedding = self.__generate_embedding(review, self.__w2v_comments)
+                pca_vector = self.__pca_comments.transform(embedding.reshape(1, -1))[0]
             elif col == "description":
                 embedding = self.__generate_embedding(description, self.__w2v_descriptions)
+                pca_vector = self.__pca_descriptions.transform(embedding.reshape(1, -1))[0]
 
-            embedding_n = embedding[n]
+            print(pca_vector, n)
+            embedding_n = pca_vector[n]
 
             features[embedding_feature["feature"]] = embedding_n
 
