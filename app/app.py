@@ -69,5 +69,5 @@ if classify:
         probabilities, orient="index", columns=["Probability"]
     )
     probabilities_df = probabilities_df.reset_index().rename(columns={"index": "Label"})
-    fig = px.bar(probabilities_df, x="Label", y="Probability")
+    fig = px.pie(probabilities_df, values="Probability", names="Label")
     probabilities_st.plotly_chart(fig)
