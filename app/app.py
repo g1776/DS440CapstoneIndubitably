@@ -37,7 +37,7 @@ review = st.text_area("Enter a review of the listing")
 
 classifier_fp = st.text_input(
     "Enter the path to the classifier pickle file",
-    r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\best_clf_texas_florida_pca.pickle",
+    r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\best_clf_texas_florida_midsemester.pickle",
 )
 feature_models_fp = st.text_input(
     "Enter the path to the feature models pickle file",
