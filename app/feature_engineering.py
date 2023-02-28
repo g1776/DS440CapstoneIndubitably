@@ -193,16 +193,43 @@ class DemoClassifier:
             self.__logging_callback(msg)
         print(msg)
 
-    def predict(self, description, amenities, review):
+    def predict_all_processed(self, processed: pd.DataFrame):
+        processed_features = []
+
+        for row in processed.itertuples():
+            row_features: pd.DataFrame = self.predict(
+                row.description,
+                row.amenities,
+                row.comments,
+                preprocess=False,
+                return_features=True,
+            )
+            processed_features.append(row_features)
+
+        processed_features = pd.concat(processed_features, axis=0)
+
+        self.print("Predicting...")
+        # predict
+        predictions = self.__clf.predict(processed_features)
+        probabilities = self.__clf.predict_proba(processed_features)
+        # align probabilities with labels
+        probabilities = [dict(zip(self.__clf.classes_, prob)) for prob in probabilities]
+
+        self.print(f"Prediction: {predictions}")
+
+        return predictions, probabilities
+
+    def predict(self, description, amenities, review, preprocess=True, return_features=False):
         features = {}
 
-        self.print("Preprocessing...")
-        # preprocess the description
-        description = preprocess_text(description)
-        # preprocess the review
-        review = preprocess_text(review)
-        # clean amenities
-        amenities = clean_amenities(amenities)
+        if preprocess:
+            self.print("Preprocessing...")
+            # preprocess the description
+            description = preprocess_text(description)
+            # preprocess the review
+            review = preprocess_text(review)
+            # clean amenities
+            amenities = clean_amenities(amenities)
 
         self.print("Generating embeddings features...")
         print(self.__features)
@@ -239,8 +266,12 @@ class DemoClassifier:
         # create final features dataframe
         features = pd.DataFrame([features], index=[0])
         # reorder columns to match self.__features
-        self.__features.remove("label")
+        if "label" in self.__features:
+            self.__features.remove("label")
         features = features[self.__features]
+
+        if return_features:
+            return features
 
         self.print("Predicting...")
         # predict
@@ -250,8 +281,6 @@ class DemoClassifier:
         probabilities = dict(zip(self.__clf.classes_, probabilities))
 
         self.print(f"Prediction: {prediction}")
-        # self.print(f"Probabilities: {probabilities}")
-        # self.print("Done!")
 
         return prediction, probabilities
 
