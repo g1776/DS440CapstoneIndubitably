@@ -29,3 +29,4 @@ The folders in data are as follows:
 -   `labels` - the labels for the filtered data. (can be joined with the filtered data using the `id` column, corresponding to the `listing_id` in the raw data)
 -   `sentiment` - the sentiment scores for the raw data. Used to generate the filtered subsets.
 -   `processed` - the processed data, ready to be used for training, testing, and validation. Includes labels.
+-   `features` - the features generated from `notebooks/modelling/feature_engineering.ipynb`. These features are then used to train models.
