@@ -131,3 +131,5 @@ dmypy.json
 # project data
 data/**/*.csv
 data/**/*.xlsx
+data/pickles/*.pkl
+data/pickles/*.pickle
