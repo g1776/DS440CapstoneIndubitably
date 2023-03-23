@@ -51,7 +51,6 @@ if classify:
     log_title.write("Log:")
     clf = DemoClassifier(
         classifier_fp,
-        feature_models_fp,
         logging_callback=lambda msg: log.write(msg),
     )
 

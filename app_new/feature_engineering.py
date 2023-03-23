@@ -15,6 +15,8 @@ from nltk.tokenize import RegexpTokenizer
 from gensim.models.word2vec import Word2Vec
 from sklearn.manifold import TSNE
 from pprint import pprint
+from typing import Any
+from dataclasses import dataclass
 
 
 def remove_stopwords_and_lemmatize(tokens) -> list:
@@ -124,65 +126,74 @@ def clean_amenities(amenities):
     return cleaned
 
 
+@dataclass
+class Feature:
+    data: pd.DataFrame | np.ndarray
+    col: str
+    type: str
+    models: dict | None
+    params: dict | None
+
+    def __str__(self):
+        return f"{self.type} ({self.col}) - {self.params}"
+
+    __repr__ = __str__
+
+
 class DemoClassifier:
-    def __init__(self, model_pickle, feature_models_pickle, logging_callback=None):
+    def __init__(self, model_pickle, logging_callback=None):
         self.__logging_callback = logging_callback
 
         self.print("Loading models...")
         # load the classifier and the word2vec models
         model_pickle = pickle.load(open(model_pickle, "rb"))
-        feature_models_pickle = pickle.load(open(feature_models_pickle, "rb"))
-        self.__clf = model_pickle["best_clf"]
-        self.__w2v_comments = feature_models_pickle["w2vmodel_comments"]
-        self.__w2v_descriptions = feature_models_pickle["w2vmodel_description"]
-        self.__pca_comments = feature_models_pickle["pca_comments"]
-        self.__pca_descriptions = feature_models_pickle["pca_description"]
 
-        # load the feature set
-        self.__features: List = model_pickle["best_feature_set"]
+        self.__features = model_pickle["combo"]
+        self.__clf = model_pickle["model"]
 
-        self.print("Determining features to calculate...")
-        #####################################
-        ## Determine Features to Calculate ##
-        #####################################
+        # self.__w2vs = [feature.models["w2v"] for feature in combo if "w2v" in feature.models]
+        # self.__pcas = [feature.models["pca"] for feature in combo if "pca" in feature.models]
 
-        # figure out which ngrams are in the feature set by looking at the names of the features
-        self.__grams_to_find = []
-        ngram_re = re.compile(r"[0-9]+gram")
-        ngrams = set([feature for feature in self.__features if ngram_re.match(feature)])
-        for ngram_feature in ngrams:
-            gram = " ".join(ngram_feature.split("_")[1:])
-            self.__grams_to_find.append(
-                {
-                    "feature": ngram_feature,
-                    "gram": gram,
-                }
-            )
+        # print(model_pickle)
 
-        # figure out with amenities are in the feature set by looking at the names of the features
-        self.__amenities_to_find = []
-        amenity_re = re.compile(r"amenity.*_.*")
-        amenities = set(feature for feature in self.__features if amenity_re.match(feature))
-        for amenity_feature in amenities:
-            amenity = " ".join(amenity_feature.split("_")[1:])
-            self.__amenities_to_find.append(
-                {
-                    "feature": amenity_feature,
-                    "amenity": amenity,
-                }
-            )
+        # self.__clf = model_pickle["model"]
+        # self.__w2v_comments = feature_models_pickle["w2vmodel_comments"]
+        # self.__w2v_descriptions = feature_models_pickle["w2vmodel_description"]
+        # self.__pca_comments = feature_models_pickle["pca_comments"]
+        # self.__pca_descriptions = feature_models_pickle["pca_description"]
 
-        # figure out which embedding features there are in the feature set
-        self.__embeddings_to_generate = []
-        embedding_features = [feature for feature in self.__features if feature.startswith("pca_")]
-        for embedding_feature in embedding_features:
-            col = embedding_feature.split("_")[1]
-            n = int(embedding_feature.split("_")[2])
-            self.__embeddings_to_generate.append(
-                {"col": col, "feature": embedding_feature, "n": n}
-            )
+        # # load the feature set
+        # self.__features: List = model_pickle["best_feature_set"]
 
-        self.print("Init complete.")
+        # self.print("Determining features to calculate...")
+        # #####################################
+        # ## Determine Features to Calculate ##
+        # #####################################
+
+        # # figure out with amenities are in the feature set by looking at the names of the features
+        # self.__amenities_to_find = []
+        # amenity_re = re.compile(r"amenity.*_.*")
+        # amenities = set(feature for feature in self.__features if amenity_re.match(feature))
+        # for amenity_feature in amenities:
+        #     amenity = " ".join(amenity_feature.split("_")[1:])
+        #     self.__amenities_to_find.append(
+        #         {
+        #             "feature": amenity_feature,
+        #             "amenity": amenity,
+        #         }
+        #     )
+
+        # # figure out which embedding features there are in the feature set
+        # self.__embeddings_to_generate = []
+        # embedding_features = [feature for feature in self.__features if feature.startswith("pca_")]
+        # for embedding_feature in embedding_features:
+        #     col = embedding_feature.split("_")[1]
+        #     n = int(embedding_feature.split("_")[2])
+        #     self.__embeddings_to_generate.append(
+        #         {"col": col, "feature": embedding_feature, "n": n}
+        #     )
+
+        # self.print("Init complete.")
 
     def __generate_embedding(self, text, w2vmodel):
         # average the word embeddings in the text
@@ -292,11 +303,9 @@ if __name__ == "__main__":
     #     amenities = amenities.replace("{", "").replace("}", "").replace("]", "").replace('"', "")
     #     return amenities.split(",")
 
-    # d_clf = DemoClassifier(
-    #     r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\best_clf_texas_florida_3.pickle",
-    #     r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\w2vmodel_comments_texas_florida_3.model",
-    #     r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\w2vmodel_description_texas_florida_3.model",
-    # )
+    d_clf = DemoClassifier(
+        r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\knn_model.pkl"
+    )
 
     # prediction, probabilities = d_clf.predict(
     #     description=(
