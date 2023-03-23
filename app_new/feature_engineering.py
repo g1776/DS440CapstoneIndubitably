@@ -148,22 +148,20 @@ class DemoClassifier:
         # load the classifier and the word2vec models
         model_pickle = pickle.load(open(model_pickle, "rb"))
 
-        self.__features = model_pickle["combo"]
+        self.__combo = model_pickle["combo"]
         self.__clf = model_pickle["model"]
 
-        # self.__w2vs = [feature.models["w2v"] for feature in combo if "w2v" in feature.models]
-        # self.__pcas = [feature.models["pca"] for feature in combo if "pca" in feature.models]
+        self.__amenity_features: List[Feature] = []
+        self.__embedding_features: List[Feature] = []
+        self.__pca_features: List[Feature] = []
 
-        # print(model_pickle)
-
-        # self.__clf = model_pickle["model"]
-        # self.__w2v_comments = feature_models_pickle["w2vmodel_comments"]
-        # self.__w2v_descriptions = feature_models_pickle["w2vmodel_description"]
-        # self.__pca_comments = feature_models_pickle["pca_comments"]
-        # self.__pca_descriptions = feature_models_pickle["pca_description"]
-
-        # # load the feature set
-        # self.__features: List = model_pickle["best_feature_set"]
+        for feature in self.__combo:
+            if feature.type == "amenities":
+                self.__amenity_features.append(feature)
+            elif feature.type == "embedding":
+                self.__embedding_features.append(feature)
+            elif feature.type == "pca":
+                self.__pca_features.append(feature)
 
         # self.print("Determining features to calculate...")
         # #####################################
@@ -242,44 +240,77 @@ class DemoClassifier:
             # clean amenities
             amenities = clean_amenities(amenities)
 
-        self.print("Generating embeddings features...")
-        print(self.__features)
-        for embedding_feature in self.__embeddings_to_generate:
-            col = embedding_feature["col"]
-            n = embedding_feature["n"]
+        self.print("Generating amenities features...")
+        for amenity_feature in self.__amenity_features:
+            for amenity_column in amenity_feature.params["amenities"]:
+                amenity = amenity_column.split("_")[1]
+
+                features[amenity_column] = int(amenity in amenities)
+
+        self.print("Generating embedding features...")
+        for embedding_feature in self.__embedding_features:
+            col = embedding_feature.col
+            w2v = embedding_feature.models["w2v"]
 
             if col == "comments":
-                embedding = self.__generate_embedding(review, self.__w2v_comments)
-                pca_vector = self.__pca_comments.transform(embedding.reshape(1, -1))[0]
+                embedding = self.__generate_embedding(review, w2v)
             elif col == "description":
-                embedding = self.__generate_embedding(description, self.__w2v_descriptions)
-                pca_vector = self.__pca_descriptions.transform(embedding.reshape(1, -1))[0]
+                embedding = self.__generate_embedding(description, w2v)
 
-            print(pca_vector, n)
-            embedding_n = pca_vector[n]
+            for i in range(embedding.shape[1]):
+                features[f"embedding_{col}_{i}"] = features[:, i]
 
-            features[embedding_feature["feature"]] = embedding_n
+        self.print("Generating pca features...")
+        for pca_feature in self.__pca_features:
+            col = pca_feature.col
+            pca = pca_feature.models["pca"]
+            w2v = pca_feature.models["w2v"]
 
-        self.print("Generating ngram features...")
-        # generate ngram features
-        for ngram_feature in self.__grams_to_find:
-            self.print(f"... Calculating Feature {ngram_feature['feature']}")
-            features[ngram_feature["feature"]] = ngram_feature["gram"] in description
+            if "comments" in col:
+                embedding = self.__generate_embedding(review, w2v)
+            elif "description" in col:
+                embedding = self.__generate_embedding(description, w2v)
 
-        self.print("Generating amenity features...")
-        # generate amenity features
-        for amenity_feature in self.__amenities_to_find:
-            self.print(f"... Calculating Feature {amenity_feature['feature']}")
-            in_amenities = amenity_feature["amenity"] in amenities
-            in_review = amenity_feature["amenity"] in review
-            features[amenity_feature["feature"]] = in_amenities and in_review
+            # see if we need to include amenities in the data to be transformed
+
+            if "amenities" in col:
+                self.print("...with amenities")
+
+                raise NotImplementedError(
+                    "Cannot generate PCA with amenities feature. You knew this was coming."
+                )
+
+                # TODO: Add this when we need it.
+                pass
+
+                # self.print("...with amenities")
+
+                # amenities_df = pd.DataFrame()
+                # for amenity_column in amenity_feature.params["amenities"]:
+                #     amenity = amenity_column.split("_")[1]
+                #     amenities_df[amenity_column] = int(amenity in amenities)
+
+                # to_transform = np.concatenate((embedding, amenities), axis=1)
+                # to_transform_df = pd.DataFrame(to_transform).T
+                # to_transform_df.columns = [
+                #     f"embedding_{col}_{i}" for i in range(to_transform_df.shape[1])
+                # ]
+
+            else:
+                self.print("...without amenities")
+                to_transform_df = pd.DataFrame(embedding).T
+                to_transform_df.columns = [
+                    f"embedding_{col}_{i}" for i in range(to_transform_df.shape[1])
+                ]
+
+            pca_vector = pca.transform(to_transform_df)[0]
+
+            n_dims = pca_vector.shape[0]
+            for i in range(pca_vector.shape[0]):
+                features[f"pca_{n_dims}D_{col}_{i}"] = pca_vector[i]
 
         # create final features dataframe
         features = pd.DataFrame([features], index=[0])
-        # reorder columns to match self.__features
-        if "label" in self.__features:
-            self.__features.remove("label")
-        features = features[self.__features]
 
         if return_features:
             return features
@@ -299,35 +330,33 @@ class DemoClassifier:
 if __name__ == "__main__":
     pass
 
-    # def parse_amenities(amenities):
-    #     amenities = amenities.replace("{", "").replace("}", "").replace("]", "").replace('"', "")
-    #     return amenities.split(",")
-
     d_clf = DemoClassifier(
         r"C:\Users\grego\Documents\GitHub\DS440CapstoneIndubitably\models\knn_model.pkl"
     )
 
-    # prediction, probabilities = d_clf.predict(
-    #     description=(
-    #         "Enjoy your stay in a calming home. In the hot Texas sun, cool off with some air"
-    #         " conditioning while watching TV, and drink some coffee with the coffee maker. If you"
-    #         " want to relax, take a hot tub. This home is dog friendly, so bring your dog along!"
-    #     ),
-    #     amenities=[
-    #         "Internet",
-    #         "Kitchen",
-    #         "Dogs",
-    #         "Air conditioner",
-    #         "TV",
-    #         "Cable TV",
-    #         "coffee maker",
-    #         "hot tub",
-    #     ],
-    #     review=(
-    #         "Would not recommend to anyone. This listing was very misleading. The pictures are not"
-    #         " as the property looks. The air conditioner is broken."
-    #     ),
-    # )
+    # prediction, probabilities =
+    d_clf.predict(
+        description=(
+            "Enjoy your stay in a calming home. In the hot Texas sun, cool off with some air"
+            " conditioning while watching TV, and drink some coffee with the coffee maker. If you"
+            " want to relax, take a dip in the pool. This home is dog friendly, so bring your dog"
+            " along!"
+        ),
+        amenities=[
+            "Internet",
+            "Kitchen",
+            "Dogs",
+            "Air conditioner",
+            "TV",
+            "Cable TV",
+            "coffee maker",
+            "pool",
+        ],
+        review=(
+            "Would not recommend to anyone. This listing was very misleading. The pictures are not"
+            " as the property looks. The air conditioner is broken, and the pool is disgusting."
+        ),
+    )
 
     # print(f"Prediction: {prediction}")
     # print(f"Probabilities:")
