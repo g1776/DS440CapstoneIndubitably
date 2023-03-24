@@ -195,7 +195,11 @@ class DemoClassifier:
         processed_features.index = processed.index
 
         self.print("Processed features:")
-        self.print(processed_features.head())
+        self.print(processed_features.columns)
+        for f in processed_features.columns:
+            if "embedding_comments_" in f:
+                val_in_first_row = processed_features.loc[processed_features.index[0], f]
+                self.print(f" - {f} (first row value: {val_in_first_row})")
 
         self.print("Predicting...")
         # predict
