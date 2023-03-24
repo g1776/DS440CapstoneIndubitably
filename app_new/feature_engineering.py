@@ -192,6 +192,7 @@ class DemoClassifier:
             processed_features.append(row_features)
 
         processed_features = pd.concat(processed_features, axis=0)
+        processed_features.index = processed.index
 
         self.print("Processed features:")
         self.print(processed_features.head())
