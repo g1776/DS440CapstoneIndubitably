@@ -244,7 +244,7 @@ class DemoClassifier:
                 embedding = self.__generate_embedding(description, w2v)
 
             for i in range(embedding.shape[1]):
-                features[f"embedding_{col}_{i}"] = features[:, i]
+                features[f"embedding_{col}_{i}"] = embedding[:, i]
 
         self.print("Generating pca features...")
         for pca_feature in self.__pca_features:
@@ -256,6 +256,8 @@ class DemoClassifier:
                 embedding = self.__generate_embedding(review, w2v)
             elif "description" in col:
                 embedding = self.__generate_embedding(description, w2v)
+
+            embeddings = np.array([embedding])
 
             # see if we need to include amenities in the data to be transformed
 
@@ -284,16 +286,19 @@ class DemoClassifier:
 
             else:
                 self.print("...without amenities")
-                to_transform_df = pd.DataFrame(embedding).T
-                to_transform_df.columns = [
-                    f"embedding_{col}_{i}" for i in range(to_transform_df.shape[1])
-                ]
 
-            pca_vector = pca.transform(to_transform_df)[0]
+                # add embeddings to features dataframe
+                columns = [f"embedding_{col}_{i}" for i in range(embeddings.shape[1])]
+                data = [embeddings[:, i] for i in range(embeddings.shape[1])]
+                to_transform = pd.concat(
+                    [pd.Series(d, name=c) for d, c in zip(data, columns)], axis=1
+                )
 
-            n_dims = pca_vector.shape[0]
+            pca_vector = pca.transform(to_transform)[0]
+
+            n_components = pca_feature.params["n_components"]
             for i in range(pca_vector.shape[0]):
-                features[f"pca_{n_dims}D_{col}_{i}"] = pca_vector[i]
+                features[f"pca_{n_components}D_{col}_{i}"] = pca_vector[i]
 
         # create final features dataframe
         features = pd.DataFrame([features], index=[0])
