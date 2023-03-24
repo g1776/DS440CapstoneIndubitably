@@ -163,36 +163,6 @@ class DemoClassifier:
             elif feature.type == "pca":
                 self.__pca_features.append(feature)
 
-        # self.print("Determining features to calculate...")
-        # #####################################
-        # ## Determine Features to Calculate ##
-        # #####################################
-
-        # # figure out with amenities are in the feature set by looking at the names of the features
-        # self.__amenities_to_find = []
-        # amenity_re = re.compile(r"amenity.*_.*")
-        # amenities = set(feature for feature in self.__features if amenity_re.match(feature))
-        # for amenity_feature in amenities:
-        #     amenity = " ".join(amenity_feature.split("_")[1:])
-        #     self.__amenities_to_find.append(
-        #         {
-        #             "feature": amenity_feature,
-        #             "amenity": amenity,
-        #         }
-        #     )
-
-        # # figure out which embedding features there are in the feature set
-        # self.__embeddings_to_generate = []
-        # embedding_features = [feature for feature in self.__features if feature.startswith("pca_")]
-        # for embedding_feature in embedding_features:
-        #     col = embedding_feature.split("_")[1]
-        #     n = int(embedding_feature.split("_")[2])
-        #     self.__embeddings_to_generate.append(
-        #         {"col": col, "feature": embedding_feature, "n": n}
-        #     )
-
-        # self.print("Init complete.")
-
     def __generate_embedding(self, text, w2vmodel):
         # average the word embeddings in the text
         return np.mean([w2vmodel.wv[word] for word in text if word in w2vmodel.wv], axis=0)
@@ -203,9 +173,15 @@ class DemoClassifier:
         print(msg)
 
     def predict_all_processed(self, processed: pd.DataFrame):
+        self.print(f"Predicting on {len(processed)} rows...")
+
         processed_features = []
 
+        num_rows = len(processed)
+
         for row in processed.itertuples():
+            self.print(f"Processing row {int(row.Index) + 1} of {num_rows}...")
+
             row_features: pd.DataFrame = self.predict(
                 row.description,
                 row.amenities,
@@ -216,6 +192,9 @@ class DemoClassifier:
             processed_features.append(row_features)
 
         processed_features = pd.concat(processed_features, axis=0)
+
+        self.print("Processed features:")
+        self.print(processed_features.head())
 
         self.print("Predicting...")
         # predict
@@ -228,7 +207,14 @@ class DemoClassifier:
 
         return predictions, probabilities
 
-    def predict(self, description, amenities, review, preprocess=True, return_features=False):
+    def predict(
+        self,
+        description,
+        amenities,
+        review,
+        preprocess=True,
+        return_features=False,
+    ):
         features = {}
 
         if preprocess:
