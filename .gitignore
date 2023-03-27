@@ -133,3 +133,4 @@ data/**/*.csv
 data/**/*.xlsx
 data/features/*.pkl
 data/features/*.pickle
+models/*.pkl

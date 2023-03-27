@@ -158,12 +158,12 @@ class DemoClassifier:
         for feature in self.__combo:
             if feature.type == "amenities":
                 self.__amenity_features.append(feature)
-            elif feature.type == "embedding":
+            elif feature.type == "embeddings":
                 self.__embedding_features.append(feature)
             elif feature.type == "pca":
                 self.__pca_features.append(feature)
 
-    def __generate_embedding(self, text, w2vmodel):
+    def __generate_embedding(self, text, w2vmodel) -> np.ndarray:
         # average the word embeddings in the text
         return np.mean([w2vmodel.wv[word] for word in text if word in w2vmodel.wv], axis=0)
 
@@ -212,33 +212,19 @@ class DemoClassifier:
 
         return predictions, probabilities
 
-    def predict(
-        self,
-        description,
-        amenities,
-        review,
-        preprocess=True,
-        return_features=False,
-    ):
-        features = {}
-
-        if preprocess:
-            self.print("Preprocessing...")
-            # preprocess the description
-            description = preprocess_text(description)
-            # preprocess the review
-            review = preprocess_text(review)
-            # clean amenities
-            amenities = clean_amenities(amenities)
-
-        self.print("Generating amenities features...")
+    def get_amenity_features(self, amenities):
+        amenity_features = {}
         for amenity_feature in self.__amenity_features:
             for amenity_column in amenity_feature.params["amenities"]:
                 amenity = amenity_column.split("_")[1]
 
-                features[amenity_column] = int(amenity in amenities)
+                amenity_features[amenity_column] = int(amenity in amenities)
 
-        self.print("Generating embedding features...")
+        return amenity_features
+
+    def get_embedding_features(self, review, description):
+        embedding_features = {}
+
         for embedding_feature in self.__embedding_features:
             col = embedding_feature.col
             w2v = embedding_feature.models["w2v"]
@@ -248,10 +234,14 @@ class DemoClassifier:
             elif col == "description":
                 embedding = self.__generate_embedding(description, w2v)
 
-            for i in range(embedding.shape[1]):
-                features[f"embedding_{col}_{i}"] = embedding[:, i]
+            for i in range(embedding.shape[0]):
+                embedding_features[f"embedding_{col}_{i}"] = embedding[i]
 
-        self.print("Generating pca features...")
+        return embedding_features
+
+    def get_pca_features(self, review, description):
+        pca_features = {}
+
         for pca_feature in self.__pca_features:
             col = pca_feature.col
             pca = pca_feature.models["pca"]
@@ -303,7 +293,43 @@ class DemoClassifier:
 
             n_components = pca_feature.params["n_components"]
             for i in range(pca_vector.shape[0]):
-                features[f"pca_{n_components}D_{col}_{i}"] = pca_vector[i]
+                pca_features[f"pca_{n_components}D_{col}_{i}"] = pca_vector[i]
+
+        return pca_features
+
+    def predict(
+        self,
+        description,
+        amenities,
+        review,
+        preprocess=True,
+        return_features=False,
+    ):
+        features = {}
+
+        if preprocess:
+            self.print("Preprocessing...")
+            # preprocess the description
+            description = preprocess_text(description)
+            # preprocess the review
+            review = preprocess_text(review)
+            # clean amenities
+            amenities = clean_amenities(amenities)
+
+        if len(self.__amenity_features) > 0:
+            self.print("Generating amenities features...")
+            amenities_features = self.get_amenity_features(amenities)
+            features.update(amenities_features)
+
+        if len(self.__embedding_features) > 0:
+            self.print("Generating embedding features...")
+            embedding_features = self.get_embedding_features(review, description)
+            features.update(embedding_features)
+
+        if len(self.__pca_features) > 0:
+            self.print("Generating pca features...")
+            pca_features = self.get_pca_features(review, description)
+            features.update(pca_features)
 
         # create final features dataframe
         features = pd.DataFrame([features], index=[0])
