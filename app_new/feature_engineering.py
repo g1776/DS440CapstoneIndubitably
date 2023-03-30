@@ -210,7 +210,7 @@ class DemoClassifier:
 
         self.print(f"Prediction: {predictions}")
 
-        return predictions, probabilities
+        return predictions, probabilities, processed_features
 
     def get_amenity_features(self, amenities):
         amenity_features = {}
