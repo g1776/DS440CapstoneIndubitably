@@ -2,6 +2,23 @@ import streamlit as st
 import pandas as pd
 from feature_engineering import DemoClassifier
 import plotly.express as px
+from dataclasses import dataclass
+import numpy as np
+
+
+@dataclass
+class Feature:
+    data: pd.DataFrame | np.ndarray
+    col: str
+    type: str
+    models: dict | None
+    params: dict | None
+
+    def __str__(self):
+        return f"{self.type} ({self.col}) - {self.params}"
+
+    __repr__ = __str__
+
 
 # load training data to get list of amenities
 florida = pd.read_csv(r"..\data\processed\florida_processed.csv")
